@@ -51,7 +51,6 @@
         main h1 {
             color: var(--title-color2);
             padding-bottom: 10px;
-            
         }
 
         main h1 span {
@@ -79,10 +78,9 @@
         .box:nth-child(2) {background-color: var(--top-bg2)}
         .box:nth-child(3) {background-color: var(--top-bg3)}
 
-        #board,
-        #setting {
+        #board {
             width: 100%;
-            padding: 0 30px 30px 30px;
+            padding: 0 30px 10px 30px;
         }
 
         .hide {
@@ -91,7 +89,6 @@
 
         #board button:disabled {
             background-color: #320c44;
-            /* border: 1px solid var(--title-color2); */
         }
 
         #board button {
@@ -111,15 +108,21 @@
             margin-bottom: 4px;
         }
 
+        #setting2 button,
         #setting1 button {
             border: none;
             border-radius: 4px;
             background-color: #fff;
             color: #000;
             padding: 8px 12px;
+            margin: 14px 0;
             font-family: 'Fredoka', Arial, sans-serif;
             font-weight: 500;
             cursor: pointer;
+        }
+
+        #setting2 button {
+            padding: 6px 8px !important;
         }
 
         #setting1 button:disabled {
@@ -127,6 +130,7 @@
         }
 
         #turn {
+            position: relative;
             display: inline-block;
             border-radius: 4px;
             background-color: #fff;
@@ -134,8 +138,34 @@
             padding: 4px 12px;
             font-family: 'Fredoka', Arial, sans-serif;
             font-weight: 500;
+            z-index: 1;
         }
 
+        #turn::before {
+            content: "";
+            position: absolute;
+            display: block;
+            background-color: #fff;
+            width: 30px;   
+            height: 30px;
+            left: -8px;
+            top: 2px;
+            border-radius: 4px;
+            z-index: -1;
+        }
+
+        #turn::after {
+            content: "";
+            position: absolute;
+            display: block;
+            background-color: #fff;
+            width: 30px;   
+            height: 30px;
+            right: -8px;
+            top: 2px;
+            border-radius: 4px;
+           z-index: -1;
+        }
     </style>
 </head>
 <body>
@@ -177,96 +207,196 @@
         </table>
 
         <div id="setting1">
-            <button onclick="Play(this)">Multiplayers</button>
-            <button onclick="Play(this)" disabled>AI</button>
-        </div>
-
-        <div id="setting2" class="hide">
-            <button onclick="Play(this)">Try Again</button>
-            <button onclick="Play(this)">New Game</button>
+            <button onclick="setting(this)">Multiplayers</button>
+            <button onclick="setting(this)" disabled>AI</button>
         </div>
 
         <div id="turn" class="hide"></div>
 
-        
+        <div id="setting2" class="hide">
+            <button onclick="setting(this)">Play Again</button>
+            <button onclick="setting(this)">Exit</button>
+        </div>
+
     </main>
 
     <script>
-        let characters = ['X', 'O'];
-        let teamColors = ['#48D2FE', '#E2BE00']
+        // variables and characters
+        const characters = ['X', 'O'];
+        const teamColors = ['#48D2FE', '#E2BE00'];
         const btnLst = document.querySelectorAll("td button");
-        disableAllButton(true);
- 
-        function disableAllButton(condition) {
-            for (let btn of btnLst) {
-                btn.disabled = condition;
+        controlAllButton('off');
+
+        // ScoreBoard
+        const plScorer = document.getElementById('player-score');
+        const enScorer = document.getElementById('opponent-score');
+        const drawScorer = document.getElementById('draw');
+        const scoreboard = [plScorer, enScorer, drawScorer];
+        let scores = [0, 0, 0];
+
+        // Disable all buttons
+        function controlAllButton(condition) {
+            switch(condition) {
+                case 'on':
+                    for (let btn of btnLst) {
+                        btn.disabled = false;
+                    }
+                    break;
+                case 'off':
+                    for (let btn of btnLst) {
+                        btn.disabled = true;
+                    }
+                    break;
+                case 'reset':
+                    for (let btn of btnLst) {
+                        btn.disabled = true;
+                        btn.innerHTML = '';
+                        btn.style.border = 'none';
+                    }
+                    break;
+                case 'clear':
+                    for (let btn of btnLst) {
+                        btn.disabled = false;
+                        btn.innerHTML = '';
+                        btn.style.border = 'none';
+                    }
+                    break;
             }
         };
 
-        const setting1 = document.getElementById('setting1');
-        const setting2 = document.getElementById('setting2');
-        function Play(type) {
-            setting1.classList.toggle("hide");
-
-            let gamePlay = type.innerHTML;
-            if (gamePlay === 'Multiplayers') {
-                gameLoop();
-            }
-        };
-
-        function gameLoop() {
-            disableAllButton(false);
-
-            let random = Math.floor(Math.random() * 10) % 2;
-            let player = characters[random];
-            let color = teamColors[random];
-            displayPlayer(player, color);
-
+        // Buttons function
+        let player, color, random;
+        (function Buttons() {
             for (let btn of btnLst) {
                 btn.addEventListener('click', () => {
-
                     btn.style.color = color;
                     btn.innerHTML = player;
                     btn.disabled = true;
 
-                    if (evaluate(player, color)) {
-                        disableAllButton(true);
-
-                        return;
+                    if (CheckWin(color)) {
+                        evaluate('win', player, color);
+                        controlAllButton('off');
                     }
-
-                    if (player === characters[0]) {
-                        player = characters[1];
-                        color = teamColors[1];
-                    } else {
-                        player = characters[0];
-                        color = teamColors[0];
+                    else if (draw()) {
+                        evaluate('draw');
+                        controlAllButton('off');
                     }
+                    else {
+                        let nextPlayer = player === characters[0] ? characters[1] : characters[0];
+                        let nextColor = player === characters[0] ? teamColors[1] : teamColors[0];
 
-                    displayPlayer(player, color);
+                        displayPlayer(nextPlayer, nextColor);
+                        player = nextPlayer;
+                        color = nextColor;
+                    }
                 });
-            };
+            }
+        })();
+
+        // Game Display
+        function gameLoop() {
+            controlAllButton('on');
+
+            random = Math.floor(Math.random() * 10) % 2;
+            player = characters[random];
+            color = teamColors[random];
+            displayPlayer(player, color);
+            return;
         };
 
-        const div = document.getElementById('turn');
-        function displayPlayer(character, color, State=false) {
-            if (State === 'win') {
-                div.innerHTML = `player <span>${character}</span> win`;
-                const span = document.querySelector('#turn span');
-                span.style.color = color;
-                return;
-            }
-            else if (State === 'draw') {
-                div.innerHTML = `It\'s a draw!`;
-                return;
-            }
+        // control setting
+        const setting1 = document.getElementById('setting1');
+        const setting2 = document.getElementById('setting2');
+        function setting(type) {
+            let gamePlay = type.innerHTML.trim();
 
-            div.classList.remove('hide');
-            div.innerHTML = `It\'s player <span>${character}</span> turn`;
-            const span = document.querySelector('#turn span');
-            span.style.color = color;
+            switch (gamePlay) {
+                case 'Multiplayers':
+                    gameLoop();
+                    setting1.classList.add('hide');
+                    setting2.classList.remove('hide');
+                    break;
+                case 'AI':
+                    break;
+                case 'Play Again':
+                    gameLoop();
+                    reset('try');
+                    break;
+                case 'Exit':
+                    reset('full');
+                    setting1.classList.remove('hide');
+                    setting2.classList.add('hide');
+                    break;
+            }
+        };
+
+        // reset setting
+        function reset(state) {
+            switch(state) {
+                case 'full':
+                    controlAllButton('off');
+                    displayPlayer(NaN, NaN, 'exit');
+
+                    scores = [0, 0, 0];
+                    for (let scorer of scoreboard) {
+                        scorer.textContent = '0';
+                    }
+                    break;
+                case 'try':
+                    controlAllButton('clear');
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        // Show result
+        function evaluate(result, player=NaN, color=NaN) {
+            switch (result) {
+                case 'win':
+                    displayPlayer(player, color, 'win');
+                    if (player === characters[0]) {
+                        scores[0]++;
+                        plScorer.textContent = scores[0];
+                    } else {
+                        scores[1]++;
+                        enScorer.textContent = scores[1];
+                    }
+                    break;
+                case 'draw':
+                    displayPlayer(player, color, 'draw');
+                    scores[2]++;
+                    drawScorer.textContent = scores[2];
+                }
+        };
+
+        // Display Characters and Situations
+        const div = document.getElementById('turn');
+        function displayPlayer(character, color, State=NaN) {
+            let span;
+
+            switch (State) {
+                case 'win':
+                    div.innerHTML = `player <span>${character}</span> win`;
+                    span = document.querySelector('#turn span');
+                    span.style.color = color;
+                    break;
+                case 'draw':
+                    div.innerHTML = `It's a draw!`;
+                    break;
+                case 'exit':
+                    div.classList.add('hide');
+                    break;
+                default:
+                    div.classList.remove('hide');
+                    div.innerHTML = `It\'s player <span>${character}</span> turn`;
+                    span = document.querySelector('#turn span');
+                    span.style.color = color;
+                    break;
+            }
         }
 
+        // The winning combinations
         const winningCombination = [
             [0, 1, 2], // Top row
             [3, 4, 5], // Middle row
@@ -277,7 +407,9 @@
             [0, 4, 8], // Diagonal from top-left to bottom-right
             [2, 4, 6]  // Diagonal from top-right to bottom-left
         ];
-        function CheckWin() {
+
+        // Check if someone win
+        function CheckWin(color) {
             for (const comb of winningCombination) {
                 const [a, b, c] = comb;
                 const buttonA = btnLst[a];
@@ -285,11 +417,18 @@
                 const buttonC = btnLst[c];
                 
                 if (buttonA.textContent && buttonA.textContent === buttonB.textContent && buttonA.textContent === buttonC.textContent) {
+
+                    for (const btns of [buttonA, buttonB, buttonC]) {
+                        btns.style.border = `1px solid ${color}`;
+                    }
+
                     return buttonA.textContent;
                 }
             }
-        };
+            return false;
+        }
 
+        // Check if it's a draw
         function draw() {
             for (let btn of btnLst) {
                 if (btn.textContent.length === 0) {
@@ -298,35 +437,6 @@
             }
             return true;
         }
-
-        function evaluate(character, color) {
-            let winner = CheckWin();
-
-            if (winner) {
-                let plScorer = document.getElementById('player-score');
-                let enScorer = document.getElementById('opponent-score');
-
-                displayPlayer(character, color, 'win')
-
-                if (winner === 'X') {
-                    plScorer.textContent = parseInt(plScorer.textContent) + 1;
-                    return true;
-                } else {
-                    enScorer.textContent = parseInt(enScorer.textContent) + 1;
-                    return true;
-                }
-            }
-            else if (draw()) {
-                displayPlayer(character, color, 'draw')
-
-                let drawScorer = document.getElementById('draw');
-                drawScorer.textContent = parseInt(drawScorer.textContent) + 1;
-                return true;
-            }
-
-            return false;
-        }
- 
     </script>
 </body>
 </html>
