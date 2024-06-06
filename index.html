@@ -35,6 +35,7 @@
             background-color: var(--main-bg);
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             font-family: 'Fredoka', Arial, sans-serif;
@@ -166,6 +167,13 @@
             border-radius: 4px;
            z-index: -1;
         }
+
+        p {
+            position: absolute;
+            bottom: 10px;
+            color: #fff;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -217,8 +225,9 @@
             <button onclick="setting(this)">Play Again</button>
             <button onclick="setting(this)">Exit</button>
         </div>
-
     </main>
+
+    <p>© 2024 Camar - All Rights Reserved</p>
 
     <script>
         // variables and characters
